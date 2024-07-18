@@ -7,6 +7,8 @@ import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
+
 @GrpcService
 public class UserController extends UserServiceGrpc.UserServiceImplBase {
 
@@ -28,11 +30,33 @@ public class UserController extends UserServiceGrpc.UserServiceImplBase {
 
     @Override
     public void getAll(EmptyReq request, StreamObserver<UserResList> responseObserver) {
-        super.getAll(request, responseObserver);
+        List<UserEntity> list = userRepository.findAll();
+        List<UserRes> userResList1 = list.stream()
+                .map(user -> UserRes.newBuilder()
+                            .setName(user.getName())
+                            .setEmail(user.getEmail())
+                            .build()
+                ).toList();
+
+        UserResList userResList = UserResList.newBuilder()
+                .addAllUsers(userResList1)
+                .build();
+
+        responseObserver.onNext(userResList);
+        responseObserver.onCompleted();
     }
 
     @Override
     public void getAllServerStream(EmptyReq request, StreamObserver<UserRes> responseObserver) {
-        super.getAllServerStream(request, responseObserver);
+        List<UserEntity> list = userRepository.findAll();
+        list.forEach(user -> {
+            UserRes userRes = UserRes.newBuilder()
+                    .setName(user.getName())
+                    .setEmail(user.getEmail())
+                    .build();
+
+            responseObserver.onNext(userRes);
+        });
+        responseObserver.onCompleted();
     }
 }
